@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Weather and Time</title>
+    <style>
+        @font-face {
+            font-family: 'Helvetica';
+            src: url('C:/Users/TSM/Pictures/! ASSETS/helvetica-255/Helvetica.ttf') format('truetype');
+        }
+        @font-face {
+            font-family: 'Helvetica Bold';
+            src: url('C:/Users/TSM/Pictures/! ASSETS/helvetica-255/Helvetica-Bold.ttf') format('truetype');
+            font-weight: bold;
+        }
+        body {
+            background: url('C:/Users/TSM/Pictures/Max Stream/Weather Widget/FullScreenImage/Olive-Corner-Bottom-Right.png') no-repeat bottom right;
+            background-size: cover;
+            color: white;
+            font-family: 'Helvetica', Arial, sans-serif;
+            height: 100vh;
+            margin: 0;
+            display: flex;
+            justify-content: flex-end;
+            align-items: flex-end;
+        }
+        .info {
+            text-align: right;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            opacity: 1;
+            transition: opacity 1s ease-in-out; /* Smooth fade transition */
+            position: absolute;
+            bottom: 0;
+            right: 0;
+        }
+        .info .row {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            opacity: 1; /* Start visible */
+            transition: opacity 1s ease-in-out; /* Smooth fade transition for each row */
+        }
+        .info .row img {
+            width: 24px;
+            height: 24px;
+            margin-left: 8px;
+        }
+        .temperature-section {
+            display: flex;
+            align-items: center;
+        }
+        .temperature-section img {
+            width: 24px;
+            height: 24px;
+            margin-left: 8px;
+        }
+        .text {
+            font-size: 24px;
+            font-family: 'Helvetica Bold', Arial, sans-serif;
+            font-weight: bold;
+        }
+        .fullscreen-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transition: opacity 1s ease-in-out; /* Smooth fade transition */
+            z-index: -1; /* Ensure it is behind the info */
+        }
+    </style>
+</head>
+<body>
+    <div class="info" id="info">
+        <div class="row" id="location-row">
+            <div class="text" id="city">Loading...</div>
+            <img src="C:/Users/TSM/Pictures/Max Stream/Weather Widget/Icons/Map.png" alt="Location Icon">
+        </div>
+        <div class="row temperature-section" id="weather-row">
+            <div class="text" id="temperature">Loading...</div>
+            <img id="weather-icon" src="http://openweathermap.org/img/wn/01d.png" alt="Weather Icon">
+        </div>
+        <div class="row" id="time-row">
+            <div class="text" id="time">Loading...</div>
+            <img src="C:/Users/TSM/Pictures/Max Stream/Weather Widget/Icons/Clock.png" alt="Clock Icon">
+        </div>
+    </div>
+    <img src="C:/Users/TSM/Pictures/Max Stream/Weather Widget/FullScreenImage/Olive-Corner-Bottom-Right.png" alt="Full Screen Image" class="fullscreen-image" id="fullscreen-image">
+
+    <script>
+        async function fetchData() {
+            const url = `https://maxolivo.github.io/weather-widget-v1-info/data.json?t=${new Date().getTime()}`;
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                const data = await response.json();
+                console.log('Fetched data:', data); // Debugging line
+                return data;
+            } catch (error) {
+                console.error('There was a problem with the fetch operation:', error);
+            }
+        }
+
+        async function updateContent() {
+            const data = await fetchData();
+            if (data) {
+                console.log('Updating content with data:', data); // Debugging line
+                document.getElementById('city').innerText = data.city;
+                const lat = data.latitude;
+                const lon = data.longitude;
+                const timeZone = data.timeZone;
+
+                // Update weather and time functions with new data
+                updateWeather(lat, lon);
+                updateTime(timeZone);
+            } else {
+                console.error('No data returned from fetchData'); // Debugging line
+            }
+        }
+
+        // Update the weather information with new coordinates
+        function updateWeather(lat, lon) {
+            const apiKey = '94e66ed6d1c93ac1cbb16fd81f4a1940';
+            const apiUrl = `https://api.openweathermap.org/data/3.0/onecall?lat=${lat}&lon=${lon}&units=imperial&appid=${apiKey}`;
+            fetch(apiUrl)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Weather data:', data); // Debugging line
+                    const temperature = Math.round(data.current.temp); // Rounded temperature
+                    const iconCode = data.current.weather[0].icon;
+                    document.getElementById('temperature').innerText = `${temperature}°F`;
+                    document.getElementById('weather-icon').src = `http://openweathermap.org/img/wn/${iconCode}.png`;
+                })
+                .catch(error => {
+                    console.error('Error fetching weather data:', error);
+                    document.getElementById('temperature').innerText = 'Error loading data';
+                });
+        }
+
+        // Update the time with new time zone
+        function updateTime(timeZone) {
+            const updateTimeElement = () => {
+                const now = new Date();
+                const options = { hour: 'numeric', minute: 'numeric', hour12: true, timeZone: timeZone };
+                const formattedTime = new Intl.DateTimeFormat('en-US', options).format(now);
+                console.log('Formatted Time:', formattedTime); // Debugging line
+                document.getElementById('time').innerText = formattedTime;
+            };
+
+            updateTimeElement(); // Call initially to set the time immediately
+            setInterval(updateTimeElement, 60000); // Update every 1 minute
+        }
+
+        // Initial update
+        window.onload = () => {
+            updateContent();
+
+            // Periodically update content every 10 minutes
+            setInterval(updateContent, 600000); // Change this interval as needed
+
+            // Start the fade in and out cycle (existing code)
+            setTimeout(() => {
+                fadeInOut();
+                setInterval(fadeInOut, 60000); // Repeat every 60 seconds
+            }, 1000); // Start after 1 second delay to ensure initial visibility
+        };
+
+        function fadeInOut() {
+            const info = document.getElementById('info');
+            const fullscreenImage = document.getElementById('fullscreen-image');
+            const locationRow = document.getElementById('location-row');
+            const weatherRow = document.getElementById('weather-row');
+            const timeRow = document.getElementById('time-row');
+
+            // Fade out info
+            setTimeout(() => {
+                locationRow.style.opacity = 0;
+                weatherRow.style.opacity = 0;
+                timeRow.style.opacity = 0;
+                setTimeout(() => { info.style.opacity = 0; }, 1000);
+            }, 30000); // After 30 seconds
+
+            // Fade in image
+            setTimeout(() => {
+                fullscreenImage.style.opacity = 1;
+            }, 31000); // 1 second after info fades out
+
+            // Fade out image
+            setTimeout(() => {
+                fullscreenImage.style.opacity = 0;
+            }, 60000); // After another 30 seconds
+
+            // Fade in info
+            setTimeout(() => {
+                info.style.opacity = 1;
+                setTimeout(() => { locationRow.style.opacity = 1; }, 500);
+                setTimeout(() => { weatherRow.style.opacity = 1; }, 1000);
+                setTimeout(() => { timeRow.style.opacity = 1; }, 1500);
+            }, 61000); // 1 second after image fades out
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Time Zone Identifiers</title>
+</head>
+<body>
+    <h1>Time Zone Identifiers</h1>
+    <ul id="timezones"></ul>
+
+    <script>
+        // List all available time zones
+        const timeZones = Intl.supportedValuesOf('timeZone');
+        
+        const ul = document.getElementById('timezones');
+        timeZones.forEach(timeZone => {
+            const li = document.createElement('li');
+            li.textContent = timeZone;
+            ul.appendChild(li);
+        });
+    </script>
+</body>
+</html>
